@@ -1,10 +1,10 @@
 # Kubernetes Workshop: From Ephemeral to Persistent
 
-A hands-on workshop that demonstrates the difference between ephemeral pod storage and persistent database-backed storage in Kubernetes. You'll deploy a simple todo app, watch your data disappear when a pod dies, then fix it with a PostgreSQL database.
+A hands-on workshop that demonstrates the difference between ephemeral pod storage and persistent database-backed storage on the Intility Developer Platform. You'll talk to Claude Code to set up infrastructure and deploy apps, then explore what it built using `oc`.
 
 ## What You'll Learn
 
-- Deploying an application with Kustomize
+- Using the **developer-platform-companion** skill to provision clusters, set up GitOps, and deploy applications
 - How pods are ephemeral — data stored in memory dies with the pod
 - Running a PostgreSQL database in Kubernetes using CloudNativePG
 - Connecting an application to a database via environment variables
@@ -12,35 +12,52 @@ A hands-on workshop that demonstrates the difference between ephemeral pod stora
 
 ## Prerequisites
 
-- Access to an OpenShift cluster (you should already be logged in with `oc`)
-- The `kubectl` or `oc` CLI
-- CloudNativePG operator installed on the cluster (ask your instructor)
+- Access to the [Intility Developer Platform](https://developers.intility.com)
+- [Install the `indev` CLI](https://article.intility.com/en-us/51ec0d96-220b-4e66-402b-08dc346b24fd#get-started-with-indev:install-indev)
+- [Claude Code](https://claude.ai/code) installed
 
 ## Repository Layout
 
 ```
 k8s/
-  app/            # Part 1 — the todo application
+  app/            # The todo application
     app.yaml          ConfigMap, Deployment, Service, Route
     kustomization.yaml
-  database/       # Part 2 — PostgreSQL via CloudNativePG
+  database/       # PostgreSQL via CloudNativePG
     cluster.yaml      Credentials Secret + CNPG Cluster
     kustomization.yaml
 ```
 
 ---
 
-## Part 1: Deploy the App (In-Memory)
+## Part 0: Get Started
 
-### 1.1 Deploy
-
-Apply the app manifests:
+Install the **developer-platform-companion** skill and start the onboarding — all in one go:
 
 ```bash
-kubectl apply -k k8s/app
+(claude plugin marketplace add git@github.com:intility/claude-plugins.git || true) && \
+claude plugin install developer-platform-companion@intility-claude-plugins && \
+claude "Help me onboard on the Intility Developer Platform. I have a todo app in k8s/app I want to deploy."
 ```
 
-This creates four resources:
+The skill will guide you through the entire setup — creating a cluster, logging in, installing ArgoCD, configuring GitOps credentials, and deploying the app. Just follow along and answer its questions.
+
+When it's all done, verify you're connected:
+
+```bash
+oc whoami
+oc get nodes
+```
+
+---
+
+## Part 1: Explore the App (In-Memory)
+
+The skill has deployed the todo app via ArgoCD. Take a look at what got created:
+
+```bash
+oc get pods,svc,route -l app=todo-app
+```
 
 | Resource | Purpose |
 |----------|---------|
@@ -49,114 +66,97 @@ This creates four resources:
 | **Service** `todo-app` | Internal network endpoint |
 | **Route** `todo-app` | Exposes the app externally (HTTPS) |
 
-### 1.2 Verify It's Running
+### 1.1 Open the App
 
 ```bash
-kubectl get pods -l app=todo-app
+oc get route todo-app -o jsonpath='https://{.spec.host}{"\n"}'
 ```
 
-You should see one pod in `Running` state.
+Open the URL in your browser. You should see the todo app with a **yellow banner**: **"Storage: In-Memory (ephemeral)"**.
 
-Get the URL of your app:
+### 1.2 Add Some Todos
+
+Add a few items through the UI. They show up in the list — everything works.
+
+### 1.3 Kill the Pod
 
 ```bash
-kubectl get route todo-app -o jsonpath='{.spec.host}'
+oc delete pod -l app=todo-app
 ```
 
-Open it in your browser. You should see the todo app with a **yellow banner** that says **"Storage: In-Memory (ephemeral)"**.
-
-### 1.3 Add Some Todos
-
-Add a few todo items through the UI. They'll appear in the list — everything works.
-
-### 1.4 Kill the Pod
-
-Now delete the pod:
+The Deployment immediately creates a replacement pod. Watch it come back:
 
 ```bash
-kubectl delete pod -l app=todo-app
+oc get pods -l app=todo-app -w
 ```
 
-Kubernetes will immediately create a new pod (that's what the Deployment does). Wait for it:
+### 1.4 Check Your Todos
 
-```bash
-kubectl get pods -l app=todo-app -w
-```
+Refresh the browser. **Your todos are gone.**
 
-### 1.5 Check Your Todos
-
-Refresh the browser. **Your todos are gone.** The new pod started fresh with an empty in-memory store.
-
-This is the key lesson: **pods are ephemeral**. Anything stored inside a pod is lost when it restarts. In production, pods can be killed at any time — during scaling, node maintenance, deployments, or crashes.
+The new pod started fresh with an empty in-memory store. This is the key lesson: **pods are ephemeral**. Anything stored inside a pod is lost when it restarts. Pods can be killed at any time — during scaling, node maintenance, deployments, or crashes.
 
 ---
 
 ## Part 2: Add a PostgreSQL Database
 
-### 2.1 Deploy the Database
+Back in Claude Code:
 
-Apply the database manifests:
+> *"Deploy the PostgreSQL cluster I have in k8s/database"*
+
+The skill creates another ArgoCD Application that syncs the CNPG cluster. Check what got created:
 
 ```bash
-kubectl apply -k k8s/database
+oc get cluster,pods -l cnpg.io/cluster=postgres
 ```
-
-This creates:
 
 | Resource | Purpose |
 |----------|---------|
 | **Secret** `postgres-credentials` | Database username and password |
 | **Cluster** `postgres` | A CloudNativePG PostgreSQL instance with 1Gi storage |
 
-Wait for the database to be ready:
+Wait for the database to be healthy:
 
 ```bash
-kubectl get cluster postgres -w
+oc get cluster postgres -w
 ```
 
-When the `STATUS` column shows `Cluster in healthy state`, you're good. This may take a minute or two.
+When `STATUS` shows `Cluster in healthy state`, you're good.
 
-### 2.2 Connect the App to PostgreSQL
+### 2.1 Connect the App to PostgreSQL
 
-Tell the app where to find the database by patching the ConfigMap:
+Now tell the app where to find the database. Patch the ConfigMap and restart:
 
 ```bash
-kubectl patch configmap todo-config -p '{"data":{"DATABASE_URL":"postgres://todos:todos@postgres-rw:5432/todos?sslmode=disable"}}'
+oc patch configmap todo-config -p '{"data":{"DATABASE_URL":"postgres://todos:todos@postgres-rw:5432/todos?sslmode=disable"}}'
+oc rollout restart deployment/todo-app
+oc rollout status deployment/todo-app
 ```
 
-Then restart the app so it picks up the new config:
+### 2.2 Verify the Connection
+
+Refresh the browser. The banner should now be **green**: **"Storage: PostgreSQL (persistent)"**.
+
+Check the logs:
 
 ```bash
-kubectl rollout restart deployment/todo-app
-kubectl rollout status deployment/todo-app
+oc logs -l app=todo-app
 ```
-
-### 2.3 Verify the Connection
-
-Refresh the browser. The banner should now be **green** and say **"Storage: PostgreSQL (persistent)"**.
-
-Check the pod logs to confirm:
-
-```bash
-kubectl logs -l app=todo-app
-```
-
-You should see:
 
 ```
 Using PostgreSQL store
 Listening on :8080
 ```
 
-### 2.4 Test Persistence
+### 2.3 Test Persistence
 
-Add a few todos through the UI. Now delete the pod again:
+Add a few todos. Then kill the pod again:
 
 ```bash
-kubectl delete pod -l app=todo-app
+oc delete pod -l app=todo-app
 ```
 
-Wait for the new pod to come up, then refresh the browser. **Your todos are still there.** The data lives in PostgreSQL, not in the pod.
+Wait for the new pod, refresh the browser. **Your todos are still there.**
 
 ---
 
@@ -174,23 +174,21 @@ Part 1                          Part 2
 └──────────┘                    └──────────┘       └────────────┘
 ```
 
-- **Part 1**: The app stored todos in a Go slice inside the process. When the pod died, the process died, and the data was gone.
-- **Part 2**: The app stores todos in PostgreSQL, which runs in its own pod with a PersistentVolumeClaim. The todo-app pod can die and restart freely — the data is safe in the database.
+- **Part 1**: Todos lived in a Go slice inside the process. Pod died, process died, data gone.
+- **Part 2**: Todos live in PostgreSQL with a PersistentVolumeClaim. The app pod can die and restart freely — the data is safe in the database.
 
 ## How It Works
 
 The app checks for a `DATABASE_URL` environment variable at startup:
 
-- **Not set** → uses an in-memory store (Go slice)
+- **Not set** → in-memory store (Go slice)
 - **Set** → connects to PostgreSQL, auto-creates the `todos` table
 
-The ConfigMap `todo-config` is injected into the pod as environment variables via `envFrom`. When you patched the ConfigMap and restarted the Deployment, the new pod started with `DATABASE_URL` set, so it connected to PostgreSQL.
+The ConfigMap `todo-config` is injected as environment variables via `envFrom`. When you patched the ConfigMap and restarted the Deployment, the new pod started with `DATABASE_URL` set, so it connected to PostgreSQL instead.
 
 ## Cleanup
 
-Remove everything when you're done:
-
 ```bash
-kubectl delete -k k8s/database
-kubectl delete -k k8s/app
+oc delete -k k8s/database
+oc delete -k k8s/app
 ```
