@@ -135,7 +135,7 @@ metadata:
 type: Opaque
 stringData:
   type: git
-  url: https://github.com/intility
+  url: https://github.com/alfredtm
   githubAppID: "<APP_ID>"
   githubAppInstallationID: "<INSTALLATION_ID>"
   githubAppPrivateKey: |
@@ -196,7 +196,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/intility/k8sbasics
+    repoURL: https://github.com/alfredtm/k8sbasics
     targetRevision: HEAD
     path: k8s/app
   destination:
@@ -278,7 +278,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/intility/k8sbasics
+    repoURL: https://github.com/alfredtm/k8sbasics
     targetRevision: HEAD
     path: k8s/database
   destination:

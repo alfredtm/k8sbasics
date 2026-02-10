@@ -91,20 +91,6 @@ spec:
     policy: |
       g, $USER_UPN, role:admin
     scopes: '[groups, email]'
-"@ | oc patch argocd openshift-gitops -n openshift-gitops --type=merge -p (Get-Content -Raw -Path -)
-```
-
-> **Note:** If the pipe approach doesn't work, save the patch to a file instead:
-
-```powershell
-$USER_UPN = oc whoami
-
-@"
-spec:
-  rbac:
-    policy: |
-      g, $USER_UPN, role:admin
-    scopes: '[groups, email]'
 "@ | Out-File -Encoding utf8 -FilePath patch.yaml
 
 oc patch argocd openshift-gitops -n openshift-gitops --type=merge --patch-file patch.yaml
@@ -154,7 +140,7 @@ metadata:
 type: Opaque
 stringData:
   type: git
-  url: https://github.com/intility
+  url: https://github.com/alfredtm
   githubAppID: "<APP_ID>"
   githubAppInstallationID: "<INSTALLATION_ID>"
   githubAppPrivateKey: |
@@ -218,7 +204,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/intility/k8sbasics
+    repoURL: https://github.com/alfredtm/k8sbasics
     targetRevision: HEAD
     path: k8s/app
   destination:
@@ -304,7 +290,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/intility/k8sbasics
+    repoURL: https://github.com/alfredtm/k8sbasics
     targetRevision: HEAD
     path: k8s/database
   destination:
@@ -333,7 +319,7 @@ Patch the ConfigMap and restart:
 
 ```powershell
 oc patch configmap todo-config -n todo-workshop `
-  -p '{"data":{"DATABASE_URL":"postgres://todos:todos@postgres-rw:5432/todos?sslmode=disable"}}'
+  -p "{`"data`":{`"DATABASE_URL`":`"postgres://todos:todos@postgres-rw:5432/todos?sslmode=disable`"}}"
 
 oc rollout restart deployment/todo-app -n todo-workshop
 oc rollout status deployment/todo-app -n todo-workshop

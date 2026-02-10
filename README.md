@@ -17,6 +17,7 @@ A hands-on workshop that demonstrates the difference between ephemeral pod stora
 - [Claude Code](https://claude.ai/code) installed
 
 > **No Claude Code?** Follow the [manual guide](MANUAL_GUIDE.md) instead — same workshop, all `oc` commands.
+
 > **Windows / PowerShell?** Follow the [PowerShell manual guide](MANUAL_GUIDE_POWERSHELL.md).
 
 ## Repository Layout
@@ -191,7 +192,10 @@ The ConfigMap `todo-config` is injected as environment variables via `envFrom`. 
 
 ## Cleanup
 
+Delete the ArgoCD applications (this removes all synced resources):
+
 ```bash
-oc delete -k k8s/database
-oc delete -k k8s/app
+oc delete application todo-database -n openshift-gitops
+oc delete application todo-app -n openshift-gitops
+oc delete project todo-workshop
 ```
