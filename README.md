@@ -16,6 +16,8 @@ A hands-on workshop that demonstrates the difference between ephemeral pod stora
 - [Install the `indev` CLI](https://article.intility.com/en-us/51ec0d96-220b-4e66-402b-08dc346b24fd#get-started-with-indev:install-indev)
 - [Claude Code](https://claude.ai/code) installed
 
+> **No Claude Code?** Follow the [manual guide](MANUAL_GUIDE.md) instead — same workshop, all `oc` commands.
+
 ## Repository Layout
 
 ```
