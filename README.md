@@ -17,6 +17,7 @@ A hands-on workshop that demonstrates the difference between ephemeral pod stora
 - [Claude Code](https://claude.ai/code) installed
 
 > **No Claude Code?** Follow the [manual guide](MANUAL_GUIDE.md) instead — same workshop, all `oc` commands.
+> **Windows / PowerShell?** Follow the [PowerShell manual guide](MANUAL_GUIDE_POWERSHELL.md).
 
 ## Repository Layout
 
