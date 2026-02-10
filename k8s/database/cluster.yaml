@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-credentials
+type: kubernetes.io/basic-auth
+stringData:
+  username: todos
+  password: todos
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres
+spec:
+  instances: 1
+  storage:
+    size: 1Gi
+  bootstrap:
+    initdb:
+      database: todos
+      owner: todos
+      secret:
+        name: postgres-credentials
+  postgresql:
+    pg_hba:
+      - host all all all md5
