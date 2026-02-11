@@ -41,7 +41,7 @@ Install the **developer-platform-companion** skill and start the onboarding — 
 ```bash
 (claude plugin marketplace add git@github.com:intility/claude-plugins.git || true) && \
 claude plugin install developer-platform-companion@intility-claude-plugins && \
-claude "Help me onboard on the Intility Developer Platform. I have a todo app in k8s/app I want to deploy."
+claude "Help me onboard on the Intility Developer Platform. I have a todo app in k8s/app I want to deploy. This is a public workshop repository. No token required for pull image or gitops."
 ```
 
 The skill will guide you through the entire setup — creating a cluster, logging in, installing ArgoCD, configuring GitOps credentials, and deploying the app. Just follow along and answer its questions.
@@ -106,7 +106,7 @@ The new pod started fresh with an empty in-memory store. This is the key lesson:
 
 Back in Claude Code:
 
-> *"Deploy the PostgreSQL cluster I have in k8s/database"*
+> *"Deploy the PostgreSQL cluster I have in k8s/database, install the neccesary CloudNativePGOperator"*
 
 The skill creates another ArgoCD Application that syncs the CNPG cluster. Check what got created:
 
@@ -173,7 +173,7 @@ Part 1                          Part 2
 │ todo-app │                    │ todo-app │──────▶│ PostgreSQL │
 │  (pod)   │                    │  (pod)   │       │  (CNPG)    │
 │          │                    │          │       │            │
-│ [todos]  │ ◀── in memory,    │          │       │  [todos]   │ ◀── on disk,
+│ [todos]  │ ◀── in memory,     │          │       │  [todos]   │ ◀── on disk,
 │          │     dies with pod  │          │       │            │     survives
 └──────────┘                    └──────────┘       └────────────┘
 ```
